@@ -27,7 +27,7 @@ mobile session correctly refuses to do anything. That is a live breakage, not a 
 managed target `/workspace/personal-data` and symlinks the **sibling of the checked-out repo** at it
 (mirroring the desktop layout, so it can never be committed into a build repo — see §5 for why the
 real clone has to live at the managed path), pulls if already present, sets
-`core.hooksPath scripts/hooks` in the clone per `CONVENTION.md`, and writes
+`core.hooksPath scripts/hooks` in the clone (so its integrity hooks run), and writes
 `export PERSONAL_DATA_DIR=…` to **`$CLAUDE_ENV_FILE`** — the only supported way for a hook to set an
 environment variable for the rest of the session.
 
@@ -37,7 +37,7 @@ If the clone is refused because the repo is not attached to the session, the hoo
 
 **Why a hook and not the setup script (§1).** The setup script runs once and is then snapshotted
 and reused for ~7 days. A snapshot of personal data is a stale task list and a stale ledger —
-precisely what `CONVENTION.md`'s *"pull at session start"* rule exists to prevent. SessionStart
+precisely what CLAUDE.md's *"pull the private repo at session start"* rule exists to prevent. SessionStart
 hooks run every session including resumed ones, are committed so they travel, and can set the env
 var; setup scripts can do none of those three.
 
@@ -82,8 +82,8 @@ match on both when detecting it (the hook does).
 
 ### The fix: attach the repo, then clone
 
-> As of 2026-08-22 this recovery is also stated in **`CLAUDE.md` → *Personal data (mounted,
-> read-write)*** and in each intake command's header banner. That duplication is deliberate: this
+> As of 2026-08-22 this recovery is also stated in **`CLAUDE.md` → *Personal data lives outside
+> this repo*** and in each intake command's header banner. That duplication is deliberate: this
 > doc is never loaded into a session's context, so a session whose first turn is a slash command
 > used to see only the "STOP" half of the rule and stop. Keep the two in sync.
 
@@ -109,7 +109,7 @@ working end to end:
 downgrade to read-only. Those are kept at the bottom for the record only.
 
 **Why `/workspace/personal-data` and not the sibling path.** `register_repo_root` — the call that
-loads `personal-data`'s `CLAUDE.md`/`CONVENTION.md` into context — accepts **only** the session's
+loads `personal-data`'s `CLAUDE.md` (if it has one) into context — accepts **only** the session's
 managed clone target and rejects anything else:
 
 ```
@@ -233,16 +233,15 @@ The leak-safety story a cloud session can rely on, by layer:
 These run on GitHub's side of the push, so no sandbox property can disable them. They are the
 reason a cloud session is allowed to write at all:
 
-- **personal-data `integrity-gate`** (`personal-data/.github/workflows/integrity-gate.yml`) —
-  L1 append-only, L2 lossy-rewrite heuristic, PII scan over content **and commit messages**,
-  commit-authorship check against `approved_authors`. Proven to catch real violations from
-  live sessions: the 2026-08-04 real-email commit (rejected) and the 2026-08-07 first run
-  of a sync job (contact PII in a synced list, blocked before merge).
+- **personal-data `auto-merge`** (`personal-data/.github/workflows/auto-merge.yml`, installed by
+  `scripts/setup-private-repo.sh`) — before it merges a `write/**` branch it runs L1 append-only,
+  the L2 lossy-rewrite heuristic, a PII scan over content **and commit messages**, and a
+  commit-authorship check against `approved_authors`. A failed check leaves the branch
+  unmerged; a passing run merges it into `main` and deletes the branch, so a session's write
+  branches are closed out without any session-side cleanup.
 - **`pr-text-scan`** (same repo + this one) — outbound PR title/body scan.
-- **Auto-merge bot** (`personal-data/.github/workflows/auto-merge.yml`) — merges `write/**`
-  PRs **only on a green gate**, with `--delete-branch`, so a session's write branches are
-  closed out without any session-side cleanup.
-- **Private-repo CI assertion** — fails if personal-data is ever not private.
+- **Private-repo CI assertion** (optional) — this repo's `integrity-gate.yml` fails if the repo
+  is public when the `KB_REQUIRE_PRIVATE` variable is `true`.
 
 ### Committed hooks (`.claude/settings.json` + `.claude/hooks/`) — travel with the repo
 

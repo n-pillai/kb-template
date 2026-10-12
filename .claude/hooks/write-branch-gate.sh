@@ -4,9 +4,9 @@
 #
 # WHAT IT PREVENTS
 #   personal-data's auto-merge.yml triggers on `push` to `write/**` (and
-#   `sync/auto`). It is the thing that opens the PR, waits for a green
-#   integrity-gate, and merges. A push to any OTHER branch name is not rejected
-#   anywhere: it succeeds, integrity-gate even runs and passes (it triggers on
+#   `sync/auto`). It is the thing that runs the integrity checks and merges.
+#   A push to any OTHER branch name is not rejected anywhere: it succeeds,
+#   any other workflow that runs on it can pass (e.g. one that triggers on
 #   `"**"`), and the work then sits on a branch nobody merges. Nothing errors.
 #   The only symptom is that `main` never moves.
 #
@@ -39,6 +39,8 @@
 #   write/ topology is personal-data's alone. The repo is identified by its
 #   `origin` URL, not by path, so it works on the desktop (a backslashed Windows
 #   path) and in cloud (/workspace or a sibling symlink) without special-casing.
+#   Its name comes from KB_DATA_REPO (<owner>/<repo>, or just <repo>), the same
+#   setting the mount hook reads; unset, the repo must be named `personal-data`.
 #
 # FAILURE POSTURE
 #   Blocks (exit 2) only when it is CERTAIN: the push targets personal-data and

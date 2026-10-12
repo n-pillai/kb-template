@@ -11,7 +11,7 @@
 # WHY A HOOK AND NOT THE ENV SETUP SCRIPT
 #   The setup script runs once and is then SNAPSHOTTED and reused for ~7 days
 #   (docs: "Environment caching"). A snapshot of personal data is a stale task list
-#   and a stale ledger — exactly what CONVENTION.md's "pull at session start" rule
+#   and a stale ledger — exactly what CLAUDE.md's "pull the private repo at session start" rule
 #   exists to prevent. A SessionStart hook runs every session, including resumed
 #   ones, and is committed so it travels with the repo. The setup script also cannot
 #   set $PERSONAL_DATA_DIR for the session; $CLAUDE_ENV_FILE (below) can.
@@ -80,8 +80,8 @@ if [ -z "$REPO" ] || [ "${REPO#*/}" = "$REPO" ]; then
 fi
 
 # WHERE THE CLONE GOES, and why it is not simply the sibling path any more.
-#   `register_repo_root` — the call that loads personal-data's CLAUDE.md and
-#   CONVENTION.md into context — accepts ONLY the session's managed clone target,
+#   `register_repo_root` — the call that loads personal-data's CLAUDE.md
+#   (if it has one) into context — accepts ONLY the session's managed clone target,
 #   /workspace/<repo>, and rejects any other path outright. So the real clone lives
 #   there, and the sibling path becomes a symlink to it. That keeps the desktop
 #   layout promise (personal-data resolves BESIDE the build repo, never inside it,
@@ -147,7 +147,7 @@ $1
        — and prefix subsequent Bash calls with it, since a hook-set var is not
        retroactive to a session that already started.
     7. Call \`register_repo_root\` with {owner: "${REPO%%/*}", repo: "${REPO#*/}",
-       directory: "$MANAGED_TARGET"} so its CLAUDE.md/CONVENTION.md load.
+       directory: "$MANAGED_TARGET"} so its CLAUDE.md (if any) loads.
 
   UNTIL step 6 succeeds, FAIL CLOSED: do not read in-repo fallback paths, do not
   reconstruct content from memory, and do not fabricate entries, themes or tasks.
@@ -193,7 +193,7 @@ fi
 
 link_sibling
 
-# CONVENTION.md: the integrity hooks are per-clone config and must be set in every
+# The integrity hooks (installed by scripts/setup-private-repo.sh) are per-clone config and must be set in every
 # clone, on every machine. This clone is new every session, so set it every session.
 git -C "$TARGET" config core.hooksPath scripts/hooks 2>/dev/null || true
 

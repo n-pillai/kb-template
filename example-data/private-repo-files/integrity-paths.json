@@ -1,0 +1,26 @@
+{
+  "_comment": "Integrity-layer paths for your PRIVATE data repo. Installed as .integrity-paths.json at its root by scripts/setup-private-repo.sh. Read by the local git hooks and by auto-merge.yml.",
+  "protected_branch": "main",
+  "_l1_note": "L1 = strictly append-only: lines may be added, never changed or removed.",
+  "l1_exact": [
+    "private/kb/_inbox/triage/rejected-log.md"
+  ],
+  "l1_prefixes": [
+    "private/kb/wiki/archive/"
+  ],
+  "l1_suffix": ".md",
+  "_l2_note": "L2 = edits allowed, but bulk deletion, dropped sections and file deletion are blocked.",
+  "l2_files": [
+    "private/kb/THEMES.md",
+    "private/kb/INDEX.md",
+    "private/kb/projects.md"
+  ],
+  "l2_prefixes": [
+    "private/kb/entries/"
+  ],
+  "_authors_note": "Approved commit authors. The setup script fills in your GitHub no-reply address. github-actions[bot] authors the merge commits.",
+  "approved_authors": [
+    "__YOUR_NOREPLY_ADDRESS__",
+    "41898282+github-actions[bot]@users.noreply.github.com"
+  ]
+}

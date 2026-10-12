@@ -5,7 +5,7 @@ description: The pre-consumption relevance gate (gate 1) — decide what's worth
 > **Mount check (cloud/mobile first turn):** if `$PERSONAL_DATA_DIR` is unset, that is the normal
 > opening state in a cloud session — **not** a reason to stop. Run the `add_repo` mount recovery
 > from `.claude/hooks/mount-personal-data.sh` first, then continue this command. Fail closed only
-> if the recovery itself fails. See CLAUDE.md → *Personal data (mounted, read-write)*.
+> if the recovery itself fails. See CLAUDE.md → *Personal data lives outside this repo*.
 
 The KB's **front door**: the pre-consumption **triage gate** (gate 1), upstream of the Signal Ledger (gate 2, `/distill`). It answers *"is this even worth my attention?"* — keyed to the lens (`$PERSONAL_DATA_DIR/private/kb/projects.md` active/parking + `$PERSONAL_DATA_DIR/private/kb/THEMES.md` watch/confirmed). Read-only over canonical files; it writes only to `$PERSONAL_DATA_DIR/private/kb/_inbox/` (and may `/shelve` to `$PERSONAL_DATA_DIR/private/kb/library/`). It never distills or commits an entry — it decides what gets *in*, and on which track.
 
