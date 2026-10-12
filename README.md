@@ -203,6 +203,15 @@ tags.md                 the governed tag vocabulary (an example set)
 Not included: the parts of the original that connect to other personal agents. One of those
 patterns is written up in [`docs/agent-proposed-projects.md`](docs/agent-proposed-projects.md).
 
+## Wanted extensions
+
+Things the template doesn't do yet. Each has an issue with the details; help is welcome.
+
+| Extension | Size | Why it isn't trivial |
+|---|---|---|
+| [Show `/digest` in the daily brief](https://github.com/n-pillai/daily-brief-template/issues/13) | Medium | `/digest` is written as the brief's KB section, but nothing delivers it yet. Tracked in [daily-brief-template](https://github.com/n-pillai/daily-brief-template), which would read it. |
+| [Run from agent tools other than Claude Code](https://github.com/n-pillai/kb-template/issues/2) | Large | The content is plain markdown, but the commands, the session-start mount and the write-branch gate are Claude Code features. Another tool would skip them; only the GitHub Actions checks in your private repo would still catch a bad write. |
+
 ## License
 
 MIT — see `LICENSE`. Third-party attributions in `NOTICE`.
