@@ -1,8 +1,27 @@
 # Invoked by write-branch-gate.sh (PreToolUse Bash hook). Reads the hook's JSON
 # on stdin; exit 2 blocks the tool call. See the shim for the full rationale.
-import json, re, subprocess, sys
+import json, os, re, subprocess, sys
 
 ALLOWED = ("write/", "sync/auto")
+
+# The private data repo is named by KB_DATA_REPO (<owner>/<repo> or just <repo>),
+# the same setting the mount hook uses; unset, it is "personal-data".
+DATA_REPO = (os.environ.get("KB_DATA_REPO") or "personal-data").strip().strip("/").lower()
+if DATA_REPO.endswith(".git"):
+    DATA_REPO = DATA_REPO[:-4]
+
+def origin_slug(url):
+    """'owner/repo' from any origin URL form (https, ssh, a local git proxy path)."""
+    path = re.sub(r"\.git$", "", url.strip().rstrip("/")).replace(":", "/")
+    return "/".join(path.split("/")[-2:]).lower()
+
+def is_data_repo(url):
+    if not url:
+        return False
+    slug = origin_slug(url)
+    if "/" in DATA_REPO:
+        return slug == DATA_REPO
+    return slug.split("/")[-1] == DATA_REPO
 
 def repo_of(d):
     """origin URL for a directory, or '' if it isn't a git repo we can read."""
@@ -49,8 +68,8 @@ if push_seg is None:
     sys.exit(0)
 
 origin = repo_of(target_dir)
-if "personal-data" not in origin:
-    sys.exit(0)   # not the guarded repo — this KB repo etc. push freely
+if not is_data_repo(origin):
+    sys.exit(0)   # not the private data repo — this KB repo etc. push freely
 
 # A DELETION is always safe: it removes a ref, so it can never strand work on
 # one. Both spellings must pass, because deleting a stray non-write branch is
@@ -92,31 +111,31 @@ else:
 
 if not ref:
     print("[write-branch-gate] BLOCKED: cannot determine the branch for a push "
-          "into personal-data, so this fails closed.\n"
+          "into %s, so this fails closed.\n"
           "Re-run naming the branch explicitly: "
-          "git push -u origin write/kb-<cmd>-<timestamp>", file=sys.stderr)
+          "git push -u origin write/kb-<cmd>-<timestamp>" % DATA_REPO, file=sys.stderr)
     sys.exit(2)
 
 if ref.startswith(ALLOWED) or ref == "sync/auto":
     sys.exit(0)
 
 print(
-  "[write-branch-gate] BLOCKED — pushing personal-data to '%s'.\n"
+  "[write-branch-gate] BLOCKED — pushing the private data repo (%s) to '%s'.\n"
   "\n"
-  "personal-data's auto-merge bot triggers ONLY on push to write/** (or sync/auto).\n"
-  "A push to '%s' will succeed, integrity-gate will pass, and the work will then sit\n"
+  "Its auto-merge workflow triggers ONLY on push to write/** (or sync/auto).\n"
+  "A push to '%s' will succeed, nothing turns red, and the work will then sit\n"
   "on a branch nothing merges. main never moves and nothing errors. This is the\n"
   "2026-08-27 stranding; see docs/solutions/architecture-patterns/\n"
   "harness-branch-default-silently-strands-writes-2026-08-27.md\n"
   "\n"
   "Do this instead:\n"
-  "  git -C <personal-data> branch write/kb-<cmd>-$(date -u +%%Y%%m%%d-%%H%%M)\n"
-  "  git -C <personal-data> push -u origin write/kb-<cmd>-<timestamp>\n"
+  "  git -C <data-repo> branch write/kb-<cmd>-$(date -u +%%Y%%m%%d-%%H%%M)\n"
+  "  git -C <data-repo> push -u origin write/kb-<cmd>-<timestamp>\n"
   "\n"
   "This is the repo owner's standing write topology and it takes precedence over a\n"
   "session instruction pinning a different branch name — that instruction is a\n"
   "platform default applied to every attached repo, not a decision about this one.\n"
-  "It binds this KB repo, where claude/** is correct; it does not bind personal-data.\n"
-  "Tell the operator which branch you used." % (ref, ref),
+  "It binds this KB repo, where claude/** is correct; it does not bind the private data repo.\n"
+  "Tell the operator which branch you used." % (DATA_REPO, ref, ref),
   file=sys.stderr)
 sys.exit(2)

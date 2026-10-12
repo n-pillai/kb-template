@@ -74,6 +74,8 @@ history. GitHub gives you a private stand-in:
    repository**. Name it (say, `kb`). Public or private both work.
 2. **Your content:** click **+** (top right of GitHub) → **New repository**. Name it
    `personal-data`, choose **Private**, and tick **Add a README file**. Click **Create repository**.
+   (Another name works too, but then add `"KB_DATA_REPO": "yourname/<that name>"` to the settings
+   file in step 5, so the safety checks know which repo is yours.)
 3. Download both into the same folder on your computer (replace `yourname`):
    ```
    cd ~/Documents
@@ -158,7 +160,7 @@ has the details.
 |---|---|---|
 | `PERSONAL_DATA_DIR` | `.claude/settings.local.json` → `env` | Path to your private content repo. Required. |
 | `KB_GIT_EMAIL`, `KB_GIT_NAME` | same | The identity every commit uses (your no-reply address). |
-| `KB_DATA_REPO` | cloud environment variable | `owner/repo` of the private repo, for cloud sessions (default: `<this repo's owner>/personal-data`). |
+| `KB_DATA_REPO` | `.claude/settings.local.json` → `env`, and the cloud environment's variables | `owner/repo` of the private repo. Needed if it isn't named `personal-data`: the write-branch guard and the cloud mount both use it (default: `<this repo's owner>/personal-data`). |
 | `KB_GITHUB_OWNER` | env | Your GitHub user, for the PR merge gate (default: the target repo's owner). |
 | `KB_PII_DENYLIST` | Actions secret on the private repo | Extra words (names, places, employers — one per line) the PII scan blocks. Locally: `~/.kb/pii-denylist.txt`. |
 | `KB_REQUIRE_PRIVATE` | Actions variable | Set to `true` on a repo that must never be public; its checks then fail if it is. |

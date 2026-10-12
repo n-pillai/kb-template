@@ -39,6 +39,8 @@
 #   write/ topology is personal-data's alone. The repo is identified by its
 #   `origin` URL, not by path, so it works on the desktop (a backslashed Windows
 #   path) and in cloud (/workspace or a sibling symlink) without special-casing.
+#   Its name comes from KB_DATA_REPO (<owner>/<repo>, or just <repo>), the same
+#   setting the mount hook reads; unset, the repo must be named `personal-data`.
 #
 # FAILURE POSTURE
 #   Blocks (exit 2) only when it is CERTAIN: the push targets personal-data and
