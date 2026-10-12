@@ -1,6 +1,5 @@
 #!/bin/bash
 # SessionStart hook -- pipeline orientation banner.
-# (docs/plans/2026-08-08-001-feat-cloud-usability-plan.md, U1)
 #
 # Every session -- desktop, cloud, mobile -- opens knowing the pipeline instead
 # of reconstructing it from the repo. Deliberately dependency-free: filesystem

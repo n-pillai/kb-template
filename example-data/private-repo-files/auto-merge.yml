@@ -1,0 +1,104 @@
+# auto-merge — the write path for your PRIVATE data repo.
+#
+# Installed by scripts/setup-private-repo.sh at .github/workflows/auto-merge.yml
+# in the private repo (not in the kb-template copy).
+#
+# Every KB command saves its work by pushing a `write/kb-<cmd>-<timestamp>`
+# branch. This workflow picks that branch up, runs the integrity checks over
+# its new commits, and, if they pass, merges it into main and deletes it.
+# Nothing else merges, so:
+#   - a push to a branch NOT named write/** is never merged (the session's
+#     write-branch gate blocks those pushes for that reason);
+#   - a failed check leaves the branch in place, and /wrap reports it. Open
+#     the private repo's Actions tab to see which check failed.
+#
+# The checks are the same ones the local git hooks run:
+#   L1 append-only · L2 lossy-rewrite · PII scan (content and messages) · commit authorship.
+# Optional: a KB_PII_DENYLIST repository secret (one term per line) adds your
+# own names/places/employers to the PII scan.
+
+name: auto-merge
+
+on:
+  push:
+    branches:
+      - "write/**"
+      - "sync/auto"
+
+permissions:
+  contents: write
+
+# One merge at a time, in push order, so two write branches never race for main.
+concurrency:
+  group: auto-merge
+  cancel-in-progress: false
+
+jobs:
+  integrity-gate-and-merge:
+    name: integrity-gate-and-merge
+    # A branch deletion also arrives as a push event; there is nothing to merge.
+    if: github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BRANCH: ${{ github.ref_name }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute the new commits on this branch
+        id: range
+        run: |
+          set -euo pipefail
+          base="$(git merge-base HEAD "origin/$DEFAULT_BRANCH")"
+          head="$(git rev-parse HEAD)"
+          echo "range=${base}..${head}" >> "$GITHUB_OUTPUT"
+          if [ "$base" = "$head" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No new commits on $BRANCH; nothing to check."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Checking ${base}..${head}"
+          fi
+
+      - name: L1 — append-only check
+        if: steps.range.outputs.skip != 'true'
+        run: python3 scripts/hooks/append_only.py --range "${{ steps.range.outputs.range }}"
+
+      - name: L2 — lossy-rewrite check
+        if: steps.range.outputs.skip != 'true'
+        run: python3 scripts/hooks/diff_heuristic.py --range "${{ steps.range.outputs.range }}"
+
+      - name: PII scan — content
+        if: steps.range.outputs.skip != 'true'
+        env:
+          KB_PII_DENYLIST: ${{ secrets.KB_PII_DENYLIST }}
+        run: python3 scripts/hooks/pii_scan.py --range "${{ steps.range.outputs.range }}"
+
+      - name: PII scan — commit messages
+        if: steps.range.outputs.skip != 'true'
+        env:
+          KB_PII_DENYLIST: ${{ secrets.KB_PII_DENYLIST }}
+        run: python3 scripts/hooks/pii_scan.py --message-range "${{ steps.range.outputs.range }}"
+
+      - name: Commit authorship
+        if: steps.range.outputs.skip != 'true'
+        run: python3 scripts/hooks/check_authorship.py --range "${{ steps.range.outputs.range }}"
+
+      - name: Merge into main and delete the write branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$DEFAULT_BRANCH" "origin/$DEFAULT_BRANCH"
+          # A merge commit, never a squash: each write keeps its own commit and
+          # can be undone on its own with `git revert`.
+          if ! git merge --no-ff "origin/$BRANCH" -m "Merge branch '$BRANCH'"; then
+            echo "::error::$BRANCH conflicts with $DEFAULT_BRANCH. It was left in place; resolve it by hand."
+            exit 1
+          fi
+          git push origin "$DEFAULT_BRANCH"
+          git push origin --delete "$BRANCH"

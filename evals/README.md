@@ -12,4 +12,4 @@ This is infra, not signal: files here auto-commit (like `$PERSONAL_DATA_DIR/priv
 
 ## Contents
 - `distill-eval.md` — the eval spec for `/distill` (the first and highest-value target). Rubric + golden set + judge-alignment plan.
-- *(later)* `triage-eval.md`, golden-set fixtures under `evals/golden/`.
+- *(later)* `triage-eval.md`, golden-set fixtures under `$PERSONAL_DATA_DIR/private/kb/evals/golden/` (private: they hold your own labels).

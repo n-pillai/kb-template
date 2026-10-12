@@ -15,13 +15,13 @@ missing, run checks 3–4 only and report the mount as ABSENT — do not guess a
    `git -C "$PERSONAL_DATA_DIR" branch -r`. Expected: only `origin/main`. **Flag every ref that
    is not `origin/main`, and read the two failure shapes differently — a surviving `write/*`
    ref is a *stalled* merge; any other prefix is a *stranded* one:**
-   - **`write/*` survives** — the auto-merge bot has not closed it out: a stalled or red gate.
-     Propose: inspect that branch's PR and the `integrity-gate` run on its head commit. Do NOT
-     merge it from the session; the bot merging on a green gate is the control.
+   - **`write/*` survives** — `auto-merge.yml` has not closed it out: a check failed, the
+     branch conflicts with `main`, or the run is still going. Propose: open the private repo's
+     **Actions** tab and read that branch's `auto-merge` run. Do NOT merge it from the session;
+     the workflow merging only after its checks pass is the control.
    - 🔴 **any other prefix survives (`claude/*`, `feat/*`, …)** — **worse, and silent.**
-     auto-merge triggers only on `write/**` and `sync/auto`, so this branch will *never* be
-     picked up: no PR, no merge, no error, and `integrity-gate` will have passed on it, so the
-     Actions list looks entirely green. Work sits there indefinitely. Propose: re-point the
+     `auto-merge.yml` triggers only on `write/**`, so this branch will *never* be picked up:
+     no merge, no error, and nothing red in the Actions list. Work sits there indefinitely. Propose: re-point the
      commits onto `write/kb-<cmd>-<timestamp>` and push that (`git branch write/kb-…  <sha>`),
      then delete the stray ref once merged. This is the classic stranding — a cloud session
      harness pins `claude/<slug>-<session-id>` for every attached repo, and

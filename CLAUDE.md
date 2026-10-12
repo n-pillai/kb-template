@@ -15,14 +15,19 @@ The KB's *content* lives in a separate **private** repo (default name `personal-
 |---|---|
 | `entries/` `wiki/` `library/` `_inbox/` `INDEX.md` `THEMES.md` `projects.md` | `$PERSONAL_DATA_DIR/private/kb/` |
 | `tags.md` | here — a bare governed vocabulary |
-| A starter set of those files | `example-data/kb/` — copy it into your private repo to begin |
+| A starter set of those files | `example-data/kb/` — `scripts/setup-private-repo.sh` installs it, with the checks and `auto-merge.yml` |
 
 - Read content by **path**; never copy it back into this repo. This repo may be public; treat every
   committed byte as published.
-- **Writes go via a branch** in the private repo: `write/kb-<cmd>-<timestamp>`, never its `main`.
-  If you add an auto-merge workflow there, have it fire on `write/**` only — then a push to any other
-  branch name stays put instead of merging. `.claude/hooks/write-branch-gate.sh` blocks the wrong
-  push mechanically.
+- **Writes go via a branch** in the private repo, never its `main`. Every command that changes
+  content saves it the same way: in `$PERSONAL_DATA_DIR`, create
+  `write/kb-<cmd>-<UTC yyyymmddTHHMMSSZ>` from an up-to-date `main`, commit there, and
+  `git push -u origin <that branch>`. Do not open a PR or merge by hand. The private repo's
+  `.github/workflows/auto-merge.yml` (installed by `scripts/setup-private-repo.sh`) fires on
+  `write/**` only: it runs the integrity checks, merges into `main` with a merge commit and deletes
+  the branch. A push to any other branch name is never merged, so
+  `.claude/hooks/write-branch-gate.sh` blocks it mechanically. After pushing, `git checkout main`
+  and pull once the run is green.
 - **Mount first, then fail closed.** In a cloud session the private repo is not attached by default;
   `.claude/hooks/mount-personal-data.sh` prints the recovery steps (attach → clone → export
   `PERSONAL_DATA_DIR`). Run them **before answering the first message, including a slash command.**

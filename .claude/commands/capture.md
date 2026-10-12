@@ -5,7 +5,7 @@ description: Drop a source into the KB intake queue (no distillation yet)
 > **Mount check (cloud/mobile first turn):** if `$PERSONAL_DATA_DIR` is unset, that is the normal
 > opening state in a cloud session — **not** a reason to stop. Run the `add_repo` mount recovery
 > from `.claude/hooks/mount-personal-data.sh` first, then continue this command. Fail closed only
-> if the recovery itself fails. See CLAUDE.md → *Personal data (mounted, read-write)*.
+> if the recovery itself fails. See CLAUDE.md → *Personal data lives outside this repo*.
 
 Capture a source into `$PERSONAL_DATA_DIR/private/kb/_inbox/queue/` so it's queued for distillation. This does NOT distill or commit an entry — it just gets the source into the front door so nothing is lost.
 
