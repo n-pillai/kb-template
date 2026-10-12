@@ -8,6 +8,8 @@ This is the **template** (public) edition of a running personal deployment. The 
 here; the content is not. Your entries, themes and projects live in a **separate private repo**
 that this one reads through `PERSONAL_DATA_DIR`, so nothing you learn is ever committed here.
 
+Want to help improve it? See [Wanted extensions](#wanted-extensions) and the [open issues](https://github.com/n-pillai/kb-template/issues).
+
 ## Why it isn't a bookmark pile
 
 Every source runs through the **Signal Ledger contract** before it is filed:
@@ -205,7 +207,10 @@ patterns is written up in [`docs/agent-proposed-projects.md`](docs/agent-propose
 
 ## Wanted extensions
 
-Things the template doesn't do yet. Each has an issue with the details; help is welcome.
+Things the template doesn't do yet. If you'd like to contribute, start here: each row links to
+an issue with the problem, where it lives in the code, a proposed approach and what "done"
+means. Comment on the issue before you start so work isn't duplicated, or
+[open a new issue](https://github.com/n-pillai/kb-template/issues/new) for an idea that isn't listed.
 
 | Extension | Size | Why it isn't trivial |
 |---|---|---|
