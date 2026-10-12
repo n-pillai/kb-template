@@ -1,0 +1,15 @@
+# Pin EOL to LF so CRLF/LF churn under autocrlf=true cannot trip the L2 diff
+# heuristic, and so hook scripts behave identically on every platform.
+scripts/**/*.py text eol=lf
+scripts/hooks/pre-commit text eol=lf
+scripts/hooks/commit-msg text eol=lf
+
+# Hook scripts run on Ubuntu in cloud sessions. A CRLF shebang fails there with
+# "bad interpreter: /bin/bash^M" -- an opaque error for a file that looks fine on
+# Windows. Pin them, rather than relying on them happening to have been authored LF.
+.claude/hooks/*.sh text eol=lf
+.claude/hooks/*.py text eol=lf
+
+# Workflow files: keep them LF on every platform so a Windows checkout does not
+# produce whole-file diffs.
+.github/workflows/*.yml text eol=lf

@@ -1,0 +1,66 @@
+# Scan PR title and body for PII.
+#
+# The last ungated write surface. File content and commit messages are gated
+# by the git hooks and integrity-gate, but a PR body reaches GitHub through
+# `gh` and never touches a git hook. Observed 2026-08-02: three sensitive
+# values were introduced in one session, all of them in PROSE rather than in
+# the data being protected. Documenting a redaction requires naming the thing
+# redacted, so this surface is not incidental.
+#
+# This workflow covers every path a PR body can take: the GitHub web UI,
+# mobile, any machine without a local pre-send hook, and any human author.
+# A hit here means the text is ALREADY PUBLISHED -- editing leaves the
+# original in the timeline -- so describe changes without reproducing values.
+#
+# Bot-opened PRs (an auto-merge.yml bot using GITHUB_TOKEN, such as
+# personal-data's) are excluded below. They DO fire this pull_request
+# trigger, but GitHub queues the run for manual approval because the actor
+# (github-actions[bot]) has no recognized write standing for that gate, same
+# treatment as a fork or first-time contributor. Nobody approves it, so it
+# sits until it expires and reports as a failed check on every bot-opened PR
+# (observed 2026-09-12). Excluding these PRs here does not open a gap where
+# an auto-merge bot exists: its merge step should run this same scanner
+# inline before merging any bot-opened PR, which is the real backstop for
+# that path.
+name: pr-text-scan
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+concurrency:
+  group: pr-text-scan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-text-scan:
+    name: pr-text-scan
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login != 'github-actions[bot]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan PR title and body
+        # PR title and body are ATTACKER-CONTROLLED TEXT. They are passed through
+        # env vars and quoted, never interpolated into the script body with
+        # ${{ ... }} -- that would let a PR title containing shell metacharacters
+        # execute arbitrary commands in this job. This is the standard GitHub
+        # Actions script-injection sink, and a scanner for untrusted text is a
+        # particularly bad place to introduce it.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          KB_PII_DENYLIST: ${{ secrets.KB_PII_DENYLIST }}
+        run: |
+          set -euo pipefail
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > "$RUNNER_TEMP/pr-text.txt"
+          if python3 scripts/hooks/pii_scan.py \
+               --text-file "$RUNNER_TEMP/pr-text.txt" --label "<pr-text>"; then
+            echo "pr-text-scan: clean"
+          else
+            echo "::error::PII detected in this PR's title or body."
+            echo "::error::The text is already published -- an edit leaves the original in the timeline."
+            echo "::error::Edit the PR to describe the change WITHOUT reproducing the value, then re-run."
+            exit 1
+          fi

@@ -1,0 +1,22 @@
+# Secrets / local config
+.env
+.env.*
+*.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+
+# Transcription scratch / large audio (Phase 2 — never commit raw audio)
+automation/cache/
+*.mp3
+*.wav
+*.m4a
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# Python bytecode from the hooks
+__pycache__/
+*.pyc

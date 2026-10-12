@@ -1,0 +1,49 @@
+#!/bin/sh
+# pre-commit — content-stage checks (the commit message does not exist yet).
+# Message-aware checks (conventional format, L1/L2 with bypass tokens) run in commit-msg.
+set -u
+
+# Resolve an interpreter that actually RUNS, not merely one that resolves on PATH.
+# On Windows, `python3` resolves to a Microsoft Store app-execution alias that exists but
+# prints "Python was not found" and exits nonzero. `command -v python3` succeeds against
+# that stub, so a resolve-only probe picks it and blocks every local commit on the desktop
+# clone. Verified 2026-08-01: python3 -> Store stub, python -> 3.14.0, py -> 3.14.0.
+PY=""
+for cand in python3 python py; do
+  if command -v "$cand" >/dev/null 2>&1 && "$cand" --version >/dev/null 2>&1; then
+    PY="$cand"
+    break
+  fi
+done
+if [ -z "${PY:-}" ]; then
+  echo "[hooks] no working python found — cannot run integrity checks; commit blocked (fail-safe)" >&2
+  exit 1
+fi
+HOOKS_DIR="$(git rev-parse --show-toplevel)/scripts/hooks"
+
+# 1. No direct commits to the protected branch (re-chains the global protection;
+#    every writer uses a branch). The branch NAME comes from
+#    .integrity-paths.json rather than being hardcoded, because the same script
+#    runs in repos whose default branch differs (`master` vs `main`).
+#    Fail-safe: if the config cannot be read, block rather than guess.
+protected="$("$PY" -c "import sys,os;sys.path.insert(0,os.path.join('$(git rev-parse --show-toplevel)','scripts','hooks'));import integrity_config;print(integrity_config.load()['protected_branch'])" 2>&1)" || {
+  echo "[hooks] cannot read .integrity-paths.json — commit blocked (fail-safe): $protected" >&2
+  exit 1
+}
+branch="$(git symbolic-ref --quiet --short HEAD || echo detached)"
+if [ "$branch" = "$protected" ]; then
+  echo "[hooks] direct commits to $protected are blocked — commit to a write/<cmd>-<timestamp> or sync/auto branch (spec: Write-path topology)" >&2
+  exit 1
+fi
+
+# 2. No .env files, ever (re-chains the global protection).
+if git diff --cached --name-only | grep -E '(^|/)\.env(\..*)?$' >/dev/null 2>&1; then
+  echo "[hooks] .env files must never be committed" >&2
+  exit 1
+fi
+
+# 3. PII/secret scan over staged added lines. NO bypass token exists for this check;
+#    --no-verify is banned by standing policy (the server-side integrity-gate is the backstop).
+"$PY" "$HOOKS_DIR/pii_scan.py" || exit 1
+
+exit 0

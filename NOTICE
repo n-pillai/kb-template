@@ -1,0 +1,13 @@
+Third-party notices for kb-template
+===================================
+
+.claude/skills/fetch-docs/
+  Vendored from https://github.com/jtsternberg/claude-plugins, pinned at commit
+  e6eb6c1f072216b9b260bfd6922fc5283c185c19, used under the MIT License
+  (Copyright (c) 2026 JT Sternberg). The full license is in
+  .claude/skills/fetch-docs/LICENSE. Local changes (reduced allowed-tools,
+  --slug and --md disabled) are listed in the provenance block at the top of
+  that skill's SKILL.md.
+
+.github/workflows/pii-public-scan.yml
+  Shared with the author's other public templates; same license as this repo.

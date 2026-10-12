@@ -1,0 +1,20 @@
+{
+  "_comment": "Integrity-layer paths for this KB repo. Read by append_only.py (L1), diff_heuristic.py (L2) and pre-commit. Required by design -- there is no default, because a default borrowed from another repo would name paths that do not exist here and protect nothing while reporting success.",
+  "protected_branch": "main",
+  "_l1_note": "Nothing here is append-only any more. entries/, wiki/archive/ and the triage rejected-log migrated to personal-data on 2026-08-02 and are L1 there. archives/ and logs/ stay declared so any future append-only tree is covered.",
+  "l1_exact": [],
+  "l1_prefixes": [
+    "archives/",
+    "logs/"
+  ],
+  "l1_suffix": ".md",
+  "_l2_note": "Only tags.md remains -- the governed vocabulary. THEMES, projects and INDEX migrated and are L2 in personal-data. Declaring paths that no longer exist here would be protection theatre.",
+  "l2_files": [
+    "tags.md"
+  ],
+  "_authors_note": "Approved commit authors. REPLACE the placeholder with your own GitHub no-reply address (Settings > Emails on GitHub; format <id>+<username>@users.noreply.github.com). The first entry is also the identity .claude/hooks/git-identity.sh pins when KB_GIT_EMAIL is unset. Cloud sandboxes provision fresh git config with Claude's identity, so this is enforced in CI -- local hooks cannot catch it, because core.hooksPath is per-clone config those environments never set. github-actions[bot] is included because the auto-merge bot authors commits in the write topology.",
+  "approved_authors": [
+    "YOUR-ID+YOUR-USER@users.noreply.github.com",
+    "41898282+github-actions[bot]@users.noreply.github.com"
+  ]
+}

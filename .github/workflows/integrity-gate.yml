@@ -1,0 +1,177 @@
+# Server-side integrity gate.
+#
+# This is the backstop that survives a local `--no-verify` (or any writer
+# that never installed the git hooks at all). This workflow is the ONLY
+# enforcement wall for cloud/mobile writers -- they do not run the local
+# pre-commit / commit-msg hooks, so whatever isn't caught here isn't caught
+# at all. It re-runs the same checks the local hooks run (L1 append-only, L2
+# lossy-rewrite heuristic, PII scan, authorship), over every non-merge commit
+# in the pushed range, using each script's --range mode.
+#
+# The PII denylist is never a committed file -- it is read from the
+# KB_PII_DENYLIST repository secret and passed through as an env var. If the
+# secret is unset, pii_scan.py degrades to regex-only (its own contract) and
+# says so in a workflow annotation.
+#
+# The job id/name below ("integrity-gate") is intentionally stable so it can
+# be wired up as a required status check in branch protection.
+
+name: integrity-gate
+
+# pull_request trigger removed 2026-08-30: for the normal branch-then-PR
+# flow (the only flow these private, single-owner repos see), `push`
+# already fires this job on the exact commit SHA the PR later points at,
+# and GitHub's required-status-check matching keys off that SHA, not which
+# event produced the check run -- so the pull_request-triggered run was a
+# duplicate, billing a second minimum-1-minute job for every PR.
+#
+# Accepted gap: a PR from a fork (commits that never hit `push` on this
+# repo) would skip integrity-gate entirely. Negligible for a single-owner
+# repo with no external contributors -- but real in principle.
+on:
+  push:
+    branches:
+      - "**"
+
+concurrency:
+  group: integrity-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrity-gate:
+    name: integrity-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Guard — repo must be private
+        # Opt-in: set the repository variable KB_REQUIRE_PRIVATE=true on a repo
+        # that must never be public (e.g. one that holds personal content). Off
+        # by default because this machinery repo can be public; the content
+        # lives in the private personal-data repo.
+        if: vars.KB_REQUIRE_PRIVATE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          is_private="$(gh api "repos/${{ github.repository }}" --jq .private)"
+          if [ "$is_private" != "true" ]; then
+            echo "::error::this repo must NEVER be public — PII boundary"
+            exit 1
+          fi
+
+      - name: Compute commit range
+        id: range
+        run: |
+          set -euo pipefail
+          DEFAULT_BRANCH="main"
+
+          # An INDETERMINATE range must fail the job, never skip the checks.
+          #
+          # Before 2026-08-03 a degenerate range (base == head) set skip=true,
+          # which skipped L1/L2/PII entirely while the two steps guarded on
+          # `range != ''` ran against `X..X` and passed vacuously -- rev-list
+          # over an empty range yields nothing, and every script exits 0. All
+          # five checks therefore reported CLEAN having read nothing.
+          #
+          # The case that produced it is the worst one: a force-push to the
+          # default branch. `github.event.before` stops resolving, the fallback
+          # merge-base of a force-pushed default branch with itself IS head, so
+          # base == head. This workflow is the ONLY wall for cloud and mobile
+          # writers, and a force-push is exactly what rewrites history
+          # wholesale. Observed live.
+          #
+          # Full-history scanning is NOT the fix here: append_only.py and
+          # diff_heuristic.py reject a bare ref (they require BASE..HEAD), and
+          # a full scan would fail on pre-gate commits.
+          # So: certify a real range, or fail.
+          EMPTY_SHA="0000000000000000000000000000000000000000"
+          forced="${{ github.event.forced }}"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+
+            if [ -z "$base" ] || [ "$base" = "$EMPTY_SHA" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              git fetch origin "$DEFAULT_BRANCH" --quiet || true
+              if merge_base="$(git merge-base HEAD "origin/$DEFAULT_BRANCH" 2>/dev/null)"; then
+                base="$merge_base"
+              else
+                base=""
+              fi
+            fi
+          fi
+
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo "range=${base}..${head}" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$base" ] && [ "$base" != "$head" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "range=${base}..${head}"
+            exit 0
+          fi
+
+          # Degenerate. Two sub-cases, and only one of them is safe.
+          if [ "$forced" = "true" ] || [ -z "$base" ]; then
+            echo "::error::integrity-gate cannot establish a commit range (forced=${forced}, base='${base}', head='${head}')."
+            echo "::error::Refusing to certify. A force-push to ${DEFAULT_BRANCH} rewrites history the gate never saw;"
+            echo "::error::skipping the checks here would report CLEAN over unvetted commits."
+            echo "::error::Re-run the checks locally over the rewritten range and push a normal commit, e.g.:"
+            echo "::error::  python scripts/hooks/append_only.py     --range <old>..<new>"
+            echo "::error::  python scripts/hooks/diff_heuristic.py  --range <old>..<new>"
+            echo "::error::  python scripts/hooks/pii_scan.py        --range <old>..<new>"
+            echo "::error::  python scripts/hooks/check_authorship.py --range <old>..<new>"
+            exit 1
+          fi
+
+          # base == head, not forced: a branch created at an existing commit.
+          # Genuinely nothing new — safe to skip, and said out loud.
+          echo "no new commits (base == head, non-forced) — nothing to check"
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+
+      - name: L1 — append-only check
+        if: steps.range.outputs.skip != 'true'
+        run: python3 scripts/hooks/append_only.py --range "${{ steps.range.outputs.range }}"
+
+      - name: L2 — diff heuristic (lossy-rewrite) check
+        if: steps.range.outputs.skip != 'true'
+        run: python3 scripts/hooks/diff_heuristic.py --range "${{ steps.range.outputs.range }}"
+
+      - name: PII scan
+        if: steps.range.outputs.skip != 'true'
+        env:
+          KB_PII_DENYLIST: ${{ secrets.KB_PII_DENYLIST }}
+        run: python3 scripts/hooks/pii_scan.py --range "${{ steps.range.outputs.range }}"
+
+      - name: PII scan — commit messages
+        # The content scan above gates what the diff CONTAINS; nothing
+        # gated the prose describing it. Writing about a redaction reproduces
+        # the value being redacted -- observed three times in one session
+        # (2026-08-02), twice caught only because a human thought to look.
+        #
+        # This is the server-side half: it covers anyone who bypassed the local
+        # commit-msg hook, never installed it, or is a cloud/mobile writer, for
+        # whom this workflow is the ONLY wall.
+        if: steps.range.outputs.skip != 'true'
+        env:
+          KB_PII_DENYLIST: ${{ secrets.KB_PII_DENYLIST }}
+        run: python3 scripts/hooks/pii_scan.py --message-range "${{ steps.range.outputs.range }}"
+
+      - name: Commit authorship
+        # Server-side because a local hook CANNOT catch this: core.hooksPath is
+        # per-clone config that cloud sandboxes never set, so the environment
+        # producing wrong authorship is exactly the one where pre-commit does not
+        # run. This gate is the only enforcement cloud writers have.
+        # Bypass for genuinely independent work: [claude-authored] in the message.
+        if: steps.range.outputs.skip != 'true'
+        run: python3 scripts/hooks/check_authorship.py --range "${{ steps.range.outputs.range }}"
+
+      - name: Clean
+        run: 'echo "integrity-gate: clean"'
