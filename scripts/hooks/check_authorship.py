@@ -65,6 +65,16 @@ def main(argv=None) -> int:
             return 1
         approved = {a.lower() for a in approved}
 
+        # A fresh copy of the template still lists only the placeholder (plus
+        # the bot). Warn instead of failing every run until the owner sets
+        # their own no-reply address.
+        humans = {a for a in approved if "[bot]" not in a}
+        if humans and all(a.startswith("your-id+") for a in humans):
+            print("::warning title=Authorship check not configured::replace the "
+                  "placeholder in .integrity-paths.json approved_authors with your "
+                  "GitHub no-reply address to enforce commit authorship")
+            return 0
+
         # --no-merges: a merge commit's authorship is created by the merging
         # party (often the auto-merge bot) and is not a writer's choice.
         listing = run_git(["rev-list", "--no-merges", args.range], cwd=args.repo)
