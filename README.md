@@ -10,7 +10,7 @@ that this one reads through `PERSONAL_DATA_DIR`, so nothing you learn is ever co
 
 Want to help improve it? See [Wanted extensions](#wanted-extensions) and the [open issues](https://github.com/n-pillai/kb-template/issues).
 
-## Why it isn't a bookmark pile
+## It is not a bookmark pile, or a summary
 
 Every source runs through the **Signal Ledger contract** before it is filed:
 
