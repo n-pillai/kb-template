@@ -1,6 +1,14 @@
-# kb-template — a Signal Ledger knowledge base for Claude Code
+# kb-template — a personal knowledge base
 
-A personal knowledge base that runs inside [Claude Code](https://claude.com/claude-code): you drop
+## Why this exists
+
+<p align="center"><img src="docs/images/second-brain-spell.gif" width="420" alt="An animation of a second brain growing out of control: one saved bookmark multiplies into a pile, notes multiply, folders form a tree, summaries and indexes stack on top, links tangle between everything, and a flood covers it all. Captions: Save it for later. Save everything. Where did I save that one? Google it again. Write down the context. Organize the context. Summarize the context. Link it all together. And now you can never find anything again."></p>
+
+<p align="center"><em>The usual way a second brain goes. This kb is the alternative.</em></p>
+
+## My solution
+
+A personal knowledge base that runs inside [Claude Code](https://claude.com/claude-code): drop
 in what you read, listen to and watch, and it keeps only what matters to your work — distilled,
 tied to a project or a thesis you're tracking, and tiered by how well it's corroborated.
 
@@ -10,13 +18,9 @@ that this one reads through `PERSONAL_DATA_DIR`, so nothing you learn is ever co
 
 Want to help improve it? See [Wanted extensions](#wanted-extensions) and the [open issues](https://github.com/n-pillai/kb-template/issues).
 
-<p align="center"><img src="docs/images/second-brain-spell.gif" width="420" alt="An animation of a second brain growing out of control: one saved bookmark multiplies into a pile, notes multiply, folders form a tree, summaries and indexes stack on top, links tangle between everything, and a flood covers it all. Captions: Save it for later. Save everything. Where did I save that one? Google it again. Write down the context. Organize the context. Summarize the context. Link it all together. And now you can never find anything again."></p>
+## KB is not a bookmark pile, or a summary
 
-<p align="center"><em>The usual way a second brain goes. The rest of this README is the alternative.</em></p>
-
-## This is not a bookmark pile, or a summary
-
-Every source runs through the **Signal Ledger contract** before it is filed:
+Every source runs through a synthesis step before it is filed:
 
 1. **Distill, don't summarize** — what it means *for your work*, in 3–5 bullets.
 2. **Lead with "so what"** — tie it to an active project or a tracked theme, or it isn't signal.
