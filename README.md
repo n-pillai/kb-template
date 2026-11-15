@@ -10,6 +10,10 @@ that this one reads through `PERSONAL_DATA_DIR`, so nothing you learn is ever co
 
 Want to help improve it? See [Wanted extensions](#wanted-extensions) and the [open issues](https://github.com/n-pillai/kb-template/issues).
 
+<p align="center"><img src="docs/images/second-brain-spell.gif" width="420" alt="An animation of a second brain growing out of control: one saved bookmark multiplies into a pile, notes multiply, folders form a tree, summaries and indexes stack on top, links tangle between everything, and a flood covers it all. Captions: Save it for later. Save everything. Where did I save that one? Google it again. Write down the context. Organize the context. Summarize the context. Link it all together. And now you can never find anything again."></p>
+
+<p align="center"><em>The usual way a second brain goes. The rest of this README is the alternative.</em></p>
+
 ## Why it isn't a bookmark pile
 
 Every source runs through the **Signal Ledger contract** before it is filed:
