@@ -14,7 +14,7 @@ Want to help improve it? See [Wanted extensions](#wanted-extensions) and the [op
 
 <p align="center"><em>The usual way a second brain goes. The rest of this README is the alternative.</em></p>
 
-## Why it isn't a bookmark pile
+## This is not a bookmark pile, or a summary
 
 Every source runs through the **Signal Ledger contract** before it is filed:
 
